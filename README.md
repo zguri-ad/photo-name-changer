@@ -16,3 +16,16 @@ Then create an executable for your PC with `npm run make`. This will create the 
 Copy the folder **namechanger-win32-x64** to your preferred location and create a shortcut to the **namechanger.exe** in order to use it freely.
 
 Easy right ;)
+
+
+## Dependencies
+- Node.js
+- electron
+- electron-forge
+- electron-squirrel-startup
+- electron-store
+- exif-parser
+- fs
+
+## Work in Progress
+This project is a way for me to better sort pictures that come from different devices (Android, ISO, Camera) since I didn't find anything that suited my needs.
