@@ -2,6 +2,20 @@ import fs from 'fs';
 import ExifParser from 'exif-parser';
 import { logObject, ERROR_TYPE } from "../../exchange/exchageLogObject.js";
 
+/**
+ * Exchange Object between Renderer and Process Module
+ */
+let processObject = {
+    /** Folder Path */
+    path: "",
+    /** Process all folders in the path recursively */
+    isRecursive: "",
+    /** Process only files that start with fileStartName */
+    checkFileStartName: "",
+    /** Consider only files that start with it */
+    fileStartName: ""
+}
+
 let processor = undefined;
 const getProcessorInstance = (mw) => {
     if (processor !== undefined && processor !== null) {
@@ -20,24 +34,45 @@ export default class Processor {
     }
 
     process(obj) {
-        let folderPath = obj.path;
-        let isRecursive = obj.isRecursive;
+        // merge the properties from obj with what we excpect
+        let object = { ...processObject, ...obj };
 
-        this.changeName(folderPath, isRecursive);
+        this.changeName(object);
     }
 
-    changeName(folderPath, isRecursive) {
+    /**
+     * Change picture names
+     * @param {processObject} object 
+     */
+    changeName(object) {
+        let folderPath = object.path;
+        let isRecursive = object.isRecursive;
         console.log(`FolderPath ${folderPath}`);
+
         fs.readdir(folderPath, (err, files) => {
             if (err) {
                 console.error('Error reading folder:', err);
                 return;
             }
 
-            let totalFiles = files.length;
-            if (!totalFiles) return;
-
             let updateObject = { ...logObject };
+
+            if (object.checkFileStartName === true && object.fileStartName !== "") {
+                files = files.filter((fl) => fl.startsWith(object.fileStartName));
+            }
+
+            let totalFiles = files.length;
+            if (!totalFiles) {
+                updateObject.path = folderPath;
+                updateObject.processedFile = 0;
+                updateObject.cssClass = "red";
+                updateObject.fileNameOld = "No files found!";
+                updateObject.errorType = ERROR_TYPE.FOLDER_NOT_PROCESSED;
+                this.updateLog(updateObject);
+                return;
+            }
+
+            
             updateObject.totalFiles = totalFiles;
         
             files.forEach((file) => {
@@ -46,7 +81,9 @@ export default class Processor {
                 fs.stat(filePath, (err, stat) => {
                     if (stat && stat.isDirectory()) {
                         if (isRecursive === true) {
-                            this.changeName(filePath, isRecursive);
+                            let dirObject = { ...object };
+                            dirObject.path = filePath;
+                            this.changeName(dirObject);
                         } else {
                             updateObject.path = folderPath;
                             updateObject.processedFile += 1;
