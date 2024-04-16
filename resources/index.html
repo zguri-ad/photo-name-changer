@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Photo name changer</title>
+
+        <link rel="modulepreload" href="../resources/modules/log.js" />
+        <link rel="modulepreload" href="../src/renderer.js" />
+
+        <link rel="stylesheet" type="text/css" href="./style.css">
+    </head>
+    <body>
+        <button type="submit" id="openDirectory" title="choose...">choose</button>
+        File path: <strong id="dir_path"></strong>
+        <p>
+            <input type="checkbox" id="recursive" name="recursive" value="">
+            <label for="recursive"> Search folders recursively</label><br>
+
+            <input type="checkbox" id="fileStartWithCheckbox" name="fileStartWithCheckbox" value="">
+            <label for="fileStartWithCheckbox"> Process only files that start with</label>
+            <input type="text" id="fileStartWithInput" value="IMG">
+        </p>
+        <p>
+            <button id="change_name" type="button">Name bearbeiten</button>
+        </p>
+        <div id="output_list">
+
+        </div>
+        <script src="../src/renderer.js" type="module"></script>
+    </body>
+</html>
