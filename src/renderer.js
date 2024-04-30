@@ -1,3 +1,4 @@
+import "@ui5/webcomponents/dist/Button.js";
 import Log from "../resources/modules/log.js";
 
 const inputPath = document.getElementById("dir_path");

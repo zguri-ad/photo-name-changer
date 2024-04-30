@@ -4,12 +4,16 @@
         <meta charset="UTF-8">
         <title>Photo name changer</title>
 
-        <link rel="modulepreload" href="../resources/modules/log.js" />
-        <link rel="modulepreload" href="../src/renderer.js" />
+        <link rel="modulepreload" href="./resources/modules/log.js" />
+        <link rel="modulepreload" href="./src/renderer.js" />
 
         <link rel="stylesheet" type="text/css" href="./style.css">
     </head>
     <body>
+        <ui5-button icon="sap-icon://action" accessible-name="Button with Accessible Name">
+            Button Text
+        </ui5-button>
+        
         <button type="submit" id="openDirectory" title="choose...">choose</button>
         File path: <strong id="dir_path"></strong>
         <p>
@@ -26,6 +30,6 @@
         <div id="output_list">
 
         </div>
-        <script src="../src/renderer.js" type="module"></script>
+        <script src="./src/renderer.js" type="module"></script>
     </body>
 </html>

@@ -1,6 +1,6 @@
-import fs from 'fs';
-import ExifParser from 'exif-parser';
-import { logObject, ERROR_TYPE } from "../../exchange/exchageLogObject.js";
+const fs = require('fs');
+const ExifParser = require('exif-parser');
+const { logObject, ERROR_TYPE } = require("../../exchange/exchageLogObject.js");
 
 /**
  * Exchange Object between Renderer and Process Module
@@ -26,7 +26,7 @@ const getProcessorInstance = (mw) => {
     return processor;
 }
 
-export default class Processor {
+module.exports = class Processor {
     mainWindow = undefined;
 
     constructor(electronWindow) {

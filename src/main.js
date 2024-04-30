@@ -1,14 +1,19 @@
-import pkg from 'electron';
-import path from 'path';
-import Processor from "./modules/processor.js";
-import Store from 'electron-store';
-import { fileURLToPath } from 'url';
+const pkg = require('electron');
+const path = require('path');
+const Processor = require("./modules/processor.js");
+const Store = require('electron-store');
+const { fileURLToPath } = require('url');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+//const __filename = fileURLToPath(import.meta.url);
+//const __dirname = path.dirname(__filename);
 
 const { app, BrowserWindow, ipcMain, ipcRenderer, dialog } = pkg;
 const store = new Store();
+
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (require("electron-squirrel-startup")) {
+  app.quit();
+}
 
 try {
   require('electron-reloader')(module)
@@ -27,8 +32,19 @@ const createWindow = () => {
     }
   });
 
-  // do smth
-  mainWindow.loadFile(indexHtmlPath);
+  console.log(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+
+  // and load the index.html of the app.
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+  } else {
+    mainWindow.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
+    );
+  }
+
+  // // do smth
+  //mainWindow.loadFile(indexHtmlPath);
 
   ipcMain.handle('set-path', async function setPath(_event, value) {
     console.log(value);
