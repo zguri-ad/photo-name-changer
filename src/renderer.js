@@ -1,6 +1,8 @@
 import Log from "../resources/modules/log.js";
 
 const inputPath = document.getElementById("dir_path");
+inputPath.innerHTML = await window.API.getLastStoredFolderPath();
+
 
 const buttonOpenDir = document.getElementById("openDirectory");
 let outputListDiv = document.getElementById('output_list');
@@ -12,17 +14,7 @@ const logOnpage = (object) => {
     log.addListElement(object.cssClass);
 }
 
-buttonOpenDir.addEventListener('click', async () => {
-    let folderPath = await window.API.selectFolder();
-    if (folderPath) {
-        let log = new Log({path: folderPath}, "output_list");
-        log.setTitle("");
-        inputPath.innerHTML = folderPath;
-    }
-});
-
-
-document.getElementById('change_name').addEventListener('click', () => {
+const getPageInputData = () => {
     let folderPath = inputPath.innerHTML;
     let recursiveInput = document.getElementById("recursive");
     let isRecursive = recursiveInput.checked;
@@ -35,21 +27,38 @@ document.getElementById('change_name').addEventListener('click', () => {
         fileStartWithInputValue = "";
     }
 
-    let log = new Log({path: folderPath}, "output_list");
-    log.clearList();
+    let obj = {
+        folderPath: folderPath,
+        isRecursive: isRecursive,
+        checkFileStartName: fileStartWithCheckboxValue,
+        fileStartName: fileStartWithInputValue
+    }
+
+    return obj;
+}
+
+buttonOpenDir.addEventListener('click', async () => {
+    const obj = getPageInputData();
+    const { folderPath } = await window.API.selectFolder(obj);
+    if (folderPath) {
+        let log = new Log({folderPath: folderPath, processedFile: 0}, "output_list");
+        log.setTitle("");
+        inputPath.innerHTML = folderPath;
+    }
+});
+
+
+document.getElementById('change_name').addEventListener('click', async () => {
+    const obj = getPageInputData();
 
     try {
-        let obj = {
-            path: folderPath,
-            isRecursive: isRecursive,
-            checkFileStartName: fileStartWithCheckboxValue,
-            fileStartName: fileStartWithInputValue
-        }
+        const fileCount = await window.API.getFileCount(obj);
+        let log = new Log({folderPath: obj.folderPath, processedFile: 0, totalFiles: fileCount}, "output_list");
+        log.clearList();
         window.API.process(obj);
     } catch (error) {
         
     }
-    
 });
 
 window.API.onUpdateProcessOutput((object) => {

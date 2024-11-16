@@ -7,7 +7,7 @@ export default class Log {
          */
         this.logObject = { ...logObject, ...obj };
 
-        this.folderPath = this.logObject.path;
+        this.folderPath = this.logObject.folderPath;
         this.idDetails = this.getIdFromPath(this.folderPath);
         this.idSummary = `summary_${this.idDetails}`;
         this.idUl = `ul_${this.idDetails}`;
@@ -94,7 +94,7 @@ export default class Log {
 
     getIdFromPath = (folderPath) => {
         let result = "";
-        if (folderPath !== "") {
+        if (folderPath && folderPath !== "") {
             let splitNameArray = folderPath.split("\\");
             let lastItem = splitNameArray[splitNameArray.length - 1];
     

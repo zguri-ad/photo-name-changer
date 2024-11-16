@@ -1,5 +1,6 @@
-import fs from 'fs';
-import ExifParser from 'exif-parser';
+import fs from 'node:fs';
+
+import PictureReader from './pictureReader.js';
 import { logObject, ERROR_TYPE } from "../../exchange/exchageLogObject.js";
 
 /**
@@ -7,7 +8,7 @@ import { logObject, ERROR_TYPE } from "../../exchange/exchageLogObject.js";
  */
 let processObject = {
     /** Folder Path */
-    path: "",
+    folderPath: "",
     /** Process all folders in the path recursively */
     isRecursive: "",
     /** Process only files that start with fileStartName */
@@ -28,11 +29,126 @@ const getProcessorInstance = (mw) => {
 
 export default class Processor {
     mainWindow = undefined;
+    pictureReader = undefined;
 
     constructor(electronWindow) {
         this.mainWindow = electronWindow;
+        this.pictureReader = new PictureReader()
     }
 
+    /**
+     * 
+     * @param {processObject} object 
+     */
+    async getJpegFiles(object) {
+        const folderPath = object.folderPath;
+        console.log(`FolderPath ${folderPath}`);
+
+        let files = await fs.promises.readdir(folderPath);
+
+        files = files.filter((fl) => { 
+            if (
+                fl.endsWith('JPG') ||
+                fl.endsWith('jpg') ||
+                fl.endsWith('JPEG') ||
+                fl.endsWith('jpeg') ||
+                fl.endsWith('heic') ||
+                fl.endsWith('HEIC') ||
+                fl.endsWith('png') ||
+                fl.endsWith('PNG') ||
+                fl.endsWith('mov') ||
+                fl.endsWith('MOV')
+            ) {
+                return fl;
+            }
+        });
+
+        if (object.checkFileStartName === true && object.fileStartName !== "") {
+            files = files.filter((fl) => fl.startsWith(object.fileStartName));
+        }
+        return files;
+    }
+
+    /**
+     * 
+     * @param {string} file 
+     * @param {processObject} obj 
+     */
+    async changeNameForFile(file, obj) {
+        let folderPath = obj.folderPath;
+        let isRecursive = obj.isRecursive;
+        let checkFileStartName = obj.checkFileStartName;
+        let fileStartName = obj.fileStartName;
+        const filePath = `${folderPath}/${file}`;
+        console.log(`FolderPath ${folderPath}`);
+        console.log(`FilePath ${filePath}`);
+        console.log(`File ${file}`);
+
+        let updateObject = { ...logObject };
+        const data = await fs.promises.readFile(filePath);
+
+
+        updateObject.folderPath = folderPath;
+
+        let aSplitFile = file.split('.');
+        let fileEnding = aSplitFile[1];
+        if (fileEnding === undefined) {
+            fileEnding = 'JPG';
+        }
+        let newFileName = "";
+        try {
+            const videoEssentials = await this.pictureReader.getVideoEssentials(`${folderPath}\\${file}`);
+            if (videoEssentials && videoEssentials.creationDate) {
+                newFileName = this.pictureReader.stringFromDate2(videoEssentials.creationDate);
+                newFileName = `${newFileName}.${fileEnding}`; 
+            } else {
+                newFileName = await this.pictureReader.createFileNameFromDate(data, fileEnding);
+            }
+
+            if (!newFileName) {
+                const match = file.match(/^\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2}$/);
+                if (match) {
+                    newFileName = newFileName.replaceAll('-', '');
+                    newFileName = newFileName.replace(' ', '_');
+                }
+            }
+        } catch(err) {
+            console.log("Error: " + file);
+        }
+
+        if (newFileName) {
+            fs.rename(filePath, `${folderPath}/${newFileName}`, (err) => {
+                if (err) {
+                    updateObject.folderPath = folderPath;
+                    updateObject.cssClass = "red";
+                    updateObject.fileNameOld = file;
+                    updateObject.fileNameNew = "";
+                    updateObject.errorType = ERROR_TYPE.RENAME_ERROR;
+                    console.error(`Error renaming file ${file}:`, err);
+                } else {
+                    console.log(`Renamed ${file} to ${newFileName}`);
+                }
+            });
+            updateObject.folderPath = folderPath;
+            updateObject.cssClass = "green";
+            updateObject.fileNameOld = file;
+            updateObject.fileNameNew = newFileName;
+            updateObject.errorType = "";
+        } else {
+            updateObject.folderPath = folderPath;
+            updateObject.cssClass = "red";
+            updateObject.fileNameOld = file;
+            updateObject.fileNameNew = "";
+            updateObject.errorType = ERROR_TYPE.NO_CREATION_DATE_FOUND;
+            console.warn(`No creation date found for ${file}`);
+        }
+        return updateObject;
+    }
+
+    /**
+     * 
+     * @param {processObject} obj 
+     */
     process(obj) {
         // merge the properties from obj with what we excpect
         let object = { ...processObject, ...obj };
@@ -45,7 +161,7 @@ export default class Processor {
      * @param {processObject} object 
      */
     changeName(object) {
-        let folderPath = object.path;
+        let folderPath = object.folderPath;
         let isRecursive = object.isRecursive;
         console.log(`FolderPath ${folderPath}`);
 
@@ -63,7 +179,7 @@ export default class Processor {
 
             let totalFiles = files.length;
             if (!totalFiles) {
-                updateObject.path = folderPath;
+                updateObject.folderPath = folderPath;
                 updateObject.processedFile = 0;
                 updateObject.cssClass = "red";
                 updateObject.fileNameOld = "No files found!";
@@ -82,10 +198,10 @@ export default class Processor {
                     if (stat && stat.isDirectory()) {
                         if (isRecursive === true) {
                             let dirObject = { ...object };
-                            dirObject.path = filePath;
+                            dirObject.folderPath = filePath;
                             this.changeName(dirObject);
                         } else {
-                            updateObject.path = folderPath;
+                            updateObject.folderPath = folderPath;
                             updateObject.processedFile += 1;
                             updateObject.cssClass = "";
                             updateObject.fileNameOld = filePath;
@@ -114,7 +230,7 @@ export default class Processor {
                 console.log(`FilePath ${filePath}`);
                 console.log(`File ${file}`);
         
-                updateObject.path = folderPath;
+                updateObject.folderPath = folderPath;
         
                 let aAllowedEndings = ['JPG', 'jpg', 'JPEG', 'jpeg'];
                 let bStartsWithImg = true; //file.startsWith("IMG");
@@ -133,7 +249,7 @@ export default class Processor {
         
                         fs.rename(filePath, `${folderPath}/${newFileName}`, (err) => {
                             if (err) {
-                                updateObject.path = folderPath;
+                                updateObject.folderPath = folderPath;
                                 updateObject.cssClass = "red";
                                 updateObject.fileNameOld = file;
                                 updateObject.fileNameNew = "";
@@ -144,14 +260,14 @@ export default class Processor {
                                 console.log(`Renamed ${file} to ${newFileName}`);
                             }
                         });
-                        updateObject.path = folderPath;
+                        updateObject.folderPath = folderPath;
                         updateObject.cssClass = "green";
                         updateObject.fileNameOld = file;
                         updateObject.fileNameNew = newFileName;
                         updateObject.errorType = "";
                         resolve(updateObject);
                     } else {
-                        updateObject.path = folderPath;
+                        updateObject.folderPath = folderPath;
                         updateObject.cssClass = "red";
                         updateObject.fileNameOld = file;
                         updateObject.fileNameNew = "";
@@ -160,7 +276,7 @@ export default class Processor {
                         console.warn(`No creation date found for ${file}`);
                     }
                 } else {
-                    updateObject.path = folderPath;
+                    updateObject.folderPath = folderPath;
                     updateObject.cssClass = "red";
                     updateObject.fileNameOld = file;
                     updateObject.fileNameNew = "";
@@ -170,7 +286,7 @@ export default class Processor {
                 }
             })
             .catch((readErr) => {
-                updateObject.path = folderPath;
+                updateObject.folderPath = folderPath;
                 updateObject.cssClass = "red";
                 updateObject.fileNameOld = file;
                 updateObject.fileNameNew = "";
